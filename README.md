@@ -37,6 +37,7 @@ Add the following line to `snmpd.conf`:
 
 ```
 master	agentx
+agentxperms 0770 0770 root snmp # if you intend to run this as an unprivileged user
 ```
 
 ### Set bird's timestamp to iso8601 long
@@ -87,8 +88,8 @@ After=snmp.service
 PermissionsStartOnly = true
 User = snmp
 Group = snmp
-WorkingDirectory = /usr/local/snmp-bird-agent
-ExecStart = /usr/bin/env python3 /usr/local/snmp-bird-agent/bird_bgp.py
+WorkingDirectory = /usr/local/bird-snmp-agent
+ExecStart = /usr/bin/env python3 /usr/local/bird-snmp-agent/bird_bgp.py
 ExecReload = /bin/kill -s HUP $MAINPID
 ExecStop = /bin/kill -s TERM $MAINPID
 PrivateTmp = true
@@ -97,5 +98,10 @@ PrivateTmp = true
 WantedBy=multi-user.target
 ```
 
-NB: the `snmp` user needs to be a member of the `bird` group in order to issue queries via birdc.
+NB1: The `snmp` user needs to be a member of the `bird` group in order to query bird.
+NB2: If you decide to run the script as a non-provileged user the following are also needed:
 
+```
+chgrp snmp /var/agentx
+chmod 0750 /var/agentx
+```
