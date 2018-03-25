@@ -49,7 +49,7 @@ class BirdAgent(object):
 
     _re_config_include = re.compile("^include\s*\"(/[^\"]*)\".*$")
     _re_config_bgp_proto_begin = re.compile(
-        "^protocol bgp ([a-zA-Z0-9_]+) .* \{$")
+        "^protocol bgp ([a-zA-Z0-9_]+).*\{$")
     _re_config_local_as = re.compile(
         "local ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+) as ([0-9]+);")
     _re_config_bgp_holdtime = re.compile("hold time ([0-9]+);")
