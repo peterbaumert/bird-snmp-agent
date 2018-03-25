@@ -22,12 +22,13 @@ The script depends on the following libraries:
 * dateutil
 * pytz
 * tzlocal
+* future
 
 It also expects the `snmp-mibs-downloader` package.
 
 All of these can be installed on Ubuntu as follows:
 
-`apt install python3-dateutil python3-tz python3-tzlocal snmp-mibs-downloader`
+`apt install python3-dateutil python3-tz python3-tzlocal python3-future snmp-mibs-downloader`
 
 ## Usage
 
