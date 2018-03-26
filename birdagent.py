@@ -61,20 +61,20 @@ class BirdAgent(object):
     _re_config_proto_end = re.compile("^\}$")
 
     _re_birdcli_bgp_begin = re.compile(
-        "([a-zA-Z0-9_]+) *BGP * [a-zA-Z0-9_]+ * [a-zA-Z0-9]+ * (\d\d\d\d-\d\d-\d\d\s\d\d:\d\d:\d\d) *")
+        "^([a-zA-Z0-9_]+)\s+BGP\s+[a-zA-Z0-9_]+\s+[a-zA-Z0-9]+\s+(\d\d\d\d-\d\d-\d\d\s\d\d:\d\d:\d\d).*$")
     _re_birdcli_bgp_peer = {
-        "bgpPeerIdentifier": re.compile("Neighbor ID:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)"),
-        "bgpPeerState": re.compile("BGP state:.* ([a-zA-Z]+)"),
-        "bgpPeerLocalAddr": re.compile("Source address:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)"),
-        "bgpPeerRemoteAddr": re.compile("Neighbor address:.* ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)"),
-        "bgpPeerRemoteAs": re.compile("Neighbor AS:.* ([0-9]+)"),
-        "bgpPeerInUpdates": re.compile("Import updates:\ +([0-9]+) .*[0-9\-]+.*[0-9\-]+.*[0-9\-]+.*[0-9\-]+"),
-        "bgpPeerOutUpdates": re.compile("Export updates:\ +([0-9]+) .*[0-9\-]+.*[0-9\-]+.*[0-9\-]+.*[0-9\-]+"),
-        "bgpPeerHoldTime": re.compile("Hold timer:.* ([0-9]+)/[0-9]+"),
-        "bgpPeerHoldTimeConfigured": re.compile("Hold timer:.* [0-9]+/([0-9]+)"),
-        "bgpPeerKeepAlive": re.compile("Keepalive timer:.* ([0-9]+)/[0-9]+"),
-        "bgpPeerKeepAliveConfigured": re.compile("Keepalive timer:.* [0-9]+/([0-9]+)"),
-        "bgpPeerLastError": re.compile("Last error:\ +[a-zA-Z0-9-_\ ]+$")}
+        "bgpPeerIdentifier": re.compile("^\s+Neighbor ID:\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$"),
+        "bgpPeerState": re.compile("^\s+BGP state:\s+([a-zA-Z]+)$"),
+        "bgpPeerLocalAddr": re.compile("^\s+Source address:\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$"),
+        "bgpPeerRemoteAddr": re.compile("^\s+Neighbor address:\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$"),
+        "bgpPeerRemoteAs": re.compile("^\s+Neighbor AS:\s+([0-9]+)$"),
+        "bgpPeerInUpdates": re.compile("^\s+Import updates:\s+([0-9]+)\s+[0-9\-]+\s+[0-9\-]+\s+[0-9\-]+\s+[0-9\-]+$"),
+        "bgpPeerOutUpdates": re.compile("^\s+Export updates:\s+([0-9]+)\s+[0-9\-]+\s+[0-9\-]+\s+[0-9\-]+\s+[0-9\-]+$"),
+        "bgpPeerHoldTime": re.compile("^\s+Hold timer:\s+([0-9]+)\/[0-9]+$"),
+        "bgpPeerHoldTimeConfigured": re.compile("^\s+Hold timer:\s+[0-9]+\/([0-9]+)$"),
+        "bgpPeerKeepAlive": re.compile("^\s+Keepalive timer:\s+([0-9]+)\/[0-9]+$"),
+        "bgpPeerKeepAliveConfigured": re.compile("^\s+Keepalive timer:\s+[0-9]+\/([0-9]+)$"),
+        "bgpPeerLastError": re.compile("^\s+Last error:\s+([a-zA-Z0-9-_\ ]+)$")}
     _re_birdcli_bgp_end = re.compile("^$")
 
     _re_ss = re.compile(
@@ -111,6 +111,7 @@ class BirdAgent(object):
         'bgpPeerIdentifier': SnmpIpAddress("0.0.0.0"),
         'bgpPeerLocalAddr': SnmpIpAddress("0.0.0.0"),
         'bgpPeerLocalPort': 0,
+        'bgpPeerRemoteAs': 0,
         'bgpPeerRemotePort': 0,
         'bgpPeerHoldTime': 0,
         'bgpPeerHoldTimeConfigured': 0,
@@ -248,27 +249,32 @@ class BirdAgent(object):
                 state["bgp-peers"][bgp_proto]["bgpPeerFsmEstablishedTime"] = SnmpGauge32(
                     abs(current_time - timestamp).total_seconds())
             if bgp_proto:
-                for peerprop_name, peerprop_re in list(
-                        self._re_birdcli_bgp_peer.items()):
-                    match = peerprop_re.search(line)
-                    if match:
-                        if peerprop_name == 'bgpPeerState':
-                            state["bgp-peers"][bgp_proto][peerprop_name] = \
-                                self.bgp_states[match.group(1).lower()]
-                        elif peerprop_name in [
-                            'bgpPeerIdentifier',
-                            'bgpPeerLocalAddr',
-                                'bgpPeerRemoteAddr']:
-                            state["bgp-peers"][bgp_proto][peerprop_name] = SnmpIpAddress(
-                                match.group(1))
-                        elif peerprop_name in [
-                            'bgpPeerInUpdates',
-                                'bgpPeerOutUpdates']:
-                            state["bgp-peers"][bgp_proto][peerprop_name] = SnmpCounter32(
-                                match.group(1))
-                        else:
-                            state["bgp-peers"][bgp_proto][peerprop_name] = int(
-                                match.group(1))
+                try:
+                    for peerprop_name, peerprop_re in list(
+                            self._re_birdcli_bgp_peer.items()):
+                        match = peerprop_re.search(line)
+                        if match:
+                            if peerprop_name == 'bgpPeerState':
+                                state["bgp-peers"][bgp_proto][peerprop_name] = \
+                                    self.bgp_states[match.group(1).lower()]
+                            elif peerprop_name in [
+                                'bgpPeerIdentifier',
+                                    'bgpPeerLocalAddr',
+                                    'bgpPeerRemoteAddr']:
+                                state["bgp-peers"][bgp_proto][peerprop_name] = SnmpIpAddress(
+                                    match.group(1))
+                            elif peerprop_name in [
+                                'bgpPeerInUpdates',
+                                    'bgpPeerOutUpdates']:
+                                state["bgp-peers"][bgp_proto][peerprop_name] = SnmpCounter32(
+                                    match.group(1))
+                            else:
+                                state["bgp-peers"][bgp_proto][peerprop_name] = int(
+                                    match.group(1))
+                except:
+                    print("ERROR: Unable to process \"%s\" as \"%s\" for protocol \"%s\"" %
+                          (match.group(1), peerprop_name, bgp_proto))
+
             if self._re_birdcli_bgp_end.search(line):
                 bgp_proto = None
 
@@ -290,14 +296,20 @@ class BirdAgent(object):
         # match the connection 4-tuples with bgp-state
         for proto in list(state["bgp-peers"].keys()):
 
-            # Report on sessions that are have no active connections
-            if state["bgp-peers"][proto]["bgpPeerRemoteAddr"] not in bgp_sessions:
-                print("INFO: Protocol \"%s\" has no active BGP session." % proto)
-                continue
-
             # enrich the state by local+remote ports
-            srcip, srcport, dstip, dstport = bgp_sessions[state["bgp-peers"][
-                proto]["bgpPeerRemoteAddr"]]
+            try:
+                srcip, srcport, dstip, dstport = bgp_sessions[state["bgp-peers"][
+                    proto]["bgpPeerRemoteAddr"]]
+            except:
+                print("INFO: Protocol \"%s\" has no active BGP session." % proto)
+                try:
+                    state["bgp-peers"][proto]["bgpPeerRemoteAddr"] = \
+                        cfg["bgp-peers"][proto]["bgpPeerRemoteAddr"]
+                    continue
+                except:
+                    state["bgp-peers"][proto]["bgpPeerRemoteAddr"] = SnmpIpAddress(
+                        "0.0.0.0")
+                    continue
 
             # Check for mismatch between config and ss output
             if srcip != state["bgp-peers"][proto]["bgpPeerLocalAddr"] or \
@@ -307,7 +319,7 @@ class BirdAgent(object):
                     (proto, state["bgp-peers"][proto]["bgpPeerLocalAddr"], state["bgp-peers"][proto]["bgpPeerRemoteAddr"], srcip, dstip))
                 continue
 
-            # populate the ports [TOD/FIXME]
+            # populate the ports
             state["bgp-peers"][proto]["bgpPeerLocalPort"] = int(srcport)
             state["bgp-peers"][proto]["bgpPeerRemotePort"] = int(dstport)
 
