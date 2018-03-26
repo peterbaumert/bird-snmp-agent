@@ -110,6 +110,8 @@ class BirdAgent(object):
     bgp_defaults = {
         'bgpPeerIdentifier': SnmpIpAddress("0.0.0.0"),
         'bgpPeerLocalAddr': SnmpIpAddress("0.0.0.0"),
+        'bgpPeerLocalPort': 0,
+        'bgpPeerRemotePort': 0,
         'bgpPeerHoldTime': 0,
         'bgpPeerHoldTimeConfigured': 0,
         'bgpPeerKeepAlive': 0,
@@ -142,17 +144,22 @@ class BirdAgent(object):
         yield the whole bird configuration file line by line;
         all include-statements are resolved/unrolled
         """
-        with open(filename, "r") as bird_conf:
-            for line in bird_conf:
-                line = line.strip()
-                match = BirdAgent._re_config_include.search(line)
-                if not match:
-                    yield line
-                else:
-                    for subconf in glob.glob(match.group(1)):
-                        yield "# subconf: %s (from %s)" % (subconf, line)
-                        for subline in BirdAgent.combinedConfigLines(subconf):
-                            yield subline
+        try:
+            with open(filename, "r") as bird_conf:
+                for line in bird_conf:
+                    line = line.strip()
+                    match = BirdAgent._re_config_include.search(line)
+                    if not match:
+                        yield line
+                    else:
+                        for subconf in glob.glob(match.group(1)):
+                            yield "# subconf: %s (from %s)" % (subconf, line)
+                            for subline in BirdAgent.combinedConfigLines(subconf):
+                                yield subline
+        except IOError:
+            print("ERROR: Unable to open %s" % filename)
+        except Exception as e:
+            print("ERROR: Unexpected error in combinedConfigLines(): %s" % format(e))
 
     @staticmethod
     def bgpKeys():
@@ -211,6 +218,7 @@ class BirdAgent(object):
 
             if self._re_config_proto_end.search(line):
                 proto = None
+
         if "timeformat" not in cfg:
             print("WARNING: timeformat not configured for this agent's use.")
 
@@ -224,6 +232,7 @@ class BirdAgent(object):
             print(
                 "ERROR: bird-CLI %s failed: %i" %
                 (self.birdcli, birdc.returncode))
+
         for line in output.split("\n"):
             match = self._re_birdcli_bgp_begin.search(line)
             if match:
@@ -263,32 +272,42 @@ class BirdAgent(object):
             if self._re_birdcli_bgp_end.search(line):
                 bgp_proto = None
 
-        # use ss to query for tcp:179 connections
+        # use ss to query for source and destination ports of the bgp protocols
         bgp_sessions = {}
-        ss = subprocess.Popen(self.sscmd, shell=True, stdout=subprocess.PIPE)
-        for line in ss.communicate()[0].decode('utf-8', 'ignore').split("\n"):
-            match = self._re_ss.search(line)
-            if not match:
-                continue
-            # key 4-tuples by remote ip: src-addr, src-port, dst-addr, dst-port
-            bgp_sessions[match.group(3)] = match.groups()
+        try:
+            ss = subprocess.Popen(self.sscmd, shell=True,
+                                  stdout=subprocess.PIPE)
 
-        # now match the tcp:179 4-tuples with bgp-state,
-        # and enrich state by local+remote ports
+            for line in ss.communicate()[0].decode('utf-8', 'ignore').split("\n"):
+                match = self._re_ss.search(line)
+                if not match:
+                    continue
+                # key 4-tuples by remote ip: src-addr, src-port, dst-addr, dst-port
+                bgp_sessions[match.group(3)] = match.groups()
+        except subprocess.CalledProcessError as e:
+            print("ERROR: Error executing \"ss\" command: %s" % format(e))
+
+        # match the connection 4-tuples with bgp-state
         for proto in list(state["bgp-peers"].keys()):
-            state["bgp-peers"][proto]["bgpPeerLocalPort"] = 0
-            state["bgp-peers"][proto]["bgpPeerRemotePort"] = 0
+
+            # Report on sessions that are have no active connections
             if state["bgp-peers"][proto]["bgpPeerRemoteAddr"] not in bgp_sessions:
-                # print("INFO: proto %s has no bgp session."%proto)
+                print("INFO: Protocol \"%s\" has no active BGP session." % proto)
                 continue
+
+            # enrich the state by local+remote ports
             srcip, srcport, dstip, dstport = bgp_sessions[state["bgp-peers"][
                 proto]["bgpPeerRemoteAddr"]]
+
+            # Check for mismatch between config and ss output
             if srcip != state["bgp-peers"][proto]["bgpPeerLocalAddr"] or \
                     dstip != state["bgp-peers"][proto]["bgpPeerRemoteAddr"]:
                 print(
-                    "WARNING: proto %s has invalid BGP session (%s / %s)" %
-                    (proto, srcip, dstip))
+                    "WARNING: Protocol \"%s\" has mismatch between the configuration file (local: %s, neighbourd %s) and the active BGP session (local: %s, neighbour: %s)" %
+                    (proto, state["bgp-peers"][proto]["bgpPeerLocalAddr"], state["bgp-peers"][proto]["bgpPeerRemoteAddr"], srcip, dstip))
                 continue
+
+            # populate the ports [TOD/FIXME]
             state["bgp-peers"][proto]["bgpPeerLocalPort"] = int(srcport)
             state["bgp-peers"][proto]["bgpPeerRemotePort"] = int(dstport)
 
