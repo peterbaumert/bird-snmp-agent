@@ -77,7 +77,7 @@ def OnUpdate(ax, axd, state):
 
 # main program
 if __name__ == '__main__':
-    print('bird-bgp AgentX starting')
+    print('bird-bgp-agent AgentX starting')
 
     bird = BirdAgent(
         os.environ.get("BIRDCONF") or "/etc/bird/bird.conf",
@@ -103,4 +103,4 @@ if __name__ == '__main__':
             CacheInterval=int(os.environ.get("AGENTCACHEINTERVAL") or "30")
         )
     except KeyboardInterrupt:
-        print('bird-bgp AgentX terminating')
+        print('bird-bgp-agent AgentX terminating')
