@@ -22,6 +22,7 @@ from past.builtins import cmp
 from builtins import object
 from adv_agentx import AgentX
 from adv_agentx import SnmpGauge32, SnmpCounter32, SnmpIpAddress
+import sys
 import re
 import subprocess
 import glob
@@ -158,9 +159,12 @@ class BirdAgent(object):
                             for subline in BirdAgent.combinedConfigLines(subconf):
                                 yield subline
         except IOError:
-            print("ERROR: Unable to open %s" % filename)
+            print("ERROR: Unable to open %s, terminating..." % filename)
+            sys.exit(1)
         except Exception as e:
-            print("ERROR: Unexpected error in combinedConfigLines(): %s" % format(e))
+            print(
+                "ERROR: Unexpected error in combinedConfigLines(): [%s], terminating" % e)
+            sys.exit(1)
 
     @staticmethod
     def bgpKeys():
@@ -221,7 +225,8 @@ class BirdAgent(object):
                 proto = None
 
         if "timeformat" not in cfg:
-            print("WARNING: timeformat not configured for this agent's use.")
+            print("ERROR: timeformat not configured for this agent's use, terminating...")
+            sys.exit(1)
 
         state = cfg.copy()
         bgp_proto = None
@@ -282,7 +287,7 @@ class BirdAgent(object):
                                 state["bgp-peers"][bgp_proto][peerprop_name] = int(
                                     match.group(1))
                 except:
-                    print("ERROR: Unable to process \"%s\" as \"%s\" for protocol \"%s\"" %
+                    print("WARNING: Unable to process \"%s\" as \"%s\" for protocol \"%s\"" %
                           (match.group(1), peerprop_name, bgp_proto))
 
             if self._re_birdcli_bgp_end.search(line):
@@ -301,7 +306,9 @@ class BirdAgent(object):
                 # key 4-tuples by remote ip: src-addr, src-port, dst-addr, dst-port
                 bgp_sessions[match.group(3)] = match.groups()
         except subprocess.CalledProcessError as e:
-            print("ERROR: Error executing \"ss\" command: %s" % format(e))
+            print(
+                "ERROR: Error executing \"ss\" command [%s], terminating..." % e)
+            sys.exit(1)
 
         # match the connection 4-tuples with bgp-state
         for proto in list(state["bgp-peers"].keys()):

@@ -45,7 +45,7 @@ try:
     snmp = ctypes.cdll.LoadLibrary(ctypes.util.find_library('netsnmphelpers'))
     axl = ctypes.cdll.LoadLibrary(ctypes.util.find_library('netsnmpagent'))
 except BaseException:
-    print('ERROR: agentx module requires net-snmp libraries.')
+    print('ERROR: agentx module requires net-snmp libraries, terminating...')
     sys.exit(1)
 
 # constants
@@ -435,7 +435,7 @@ class RequestObject(object):
                 value, ctypes.POINTER(ctypes.c_ubyte)), size)
             self.value = value
         except Exception as e:
-            print("ERROR: Unexpected error in SetValue(): %s" % format(e))
+            print("WARNING: Unexpected error in SetValue(): %s" % e)
 
     # set error
     def SetError(self, error):
