@@ -255,8 +255,18 @@ class BirdAgent(object):
                         match = peerprop_re.search(line)
                         if match:
                             if peerprop_name == 'bgpPeerState':
-                                state["bgp-peers"][bgp_proto][peerprop_name] = \
-                                    self.bgp_states[match.group(1).lower()]
+                                if not match.group(1).lower() == 'down':
+                                    state["bgp-peers"][bgp_proto][peerprop_name] = \
+                                        self.bgp_states[match.group(1).lower()]
+                                else:
+                                    # handle disabled (down) protocols
+                                    state["bgp-peers"][bgp_proto][peerprop_name] = int(
+                                        1)
+                                    state["bgp-peers"][bgp_proto]["bgpPeerAdminStatus"] = int(
+                                        1)
+                                    state["bgp-peers"][bgp_proto]["bgpPeerFsmEstablishedTime"] = int(
+                                        0)
+
                             elif peerprop_name in [
                                 'bgpPeerIdentifier',
                                     'bgpPeerLocalAddr',
