@@ -100,6 +100,7 @@ WantedBy=multi-user.target
 ```
 
 NB1: The `snmp` user needs to be a member of the `bird` group in order to query bird.
+
 NB2: If you decide to run the script as a non-provileged user the following are also needed:
 
 ```

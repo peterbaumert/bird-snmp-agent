@@ -204,6 +204,7 @@ class BirdAgent(object):
                     elif cfg["bgpLocalAs"] != int(match.group(2)):
                         print("WARNING: multiple local AS: %i/%i" %
                               (cfg["bgpLocalAs"], int(match.group(2))))
+
                 match = self._re_config_remote_peer.search(line)
                 if match:
                     cfg["bgp-peers"][proto]["bgpPeerRemoteAddr"] = SnmpIpAddress(
@@ -227,6 +228,18 @@ class BirdAgent(object):
         if "timeformat" not in cfg:
             print("ERROR: timeformat not configured for this agent's use, terminating...")
             sys.exit(1)
+
+        # Validate protocol's config
+        for proto in cfg["bgp-peers"]:
+            if "bgpPeerLocalAddr" not in cfg["bgp-peers"][proto] and \
+               "bgpPeerLocalAs" not in cfg["bgp-peers"][proto]:
+                print(
+                    "WARNING: Protocol \"%s\" does not have a properly formated 'local <ip> as <asn>;' line in the config" % proto)
+
+            if "bgpPeerRemoteAddr" not in cfg["bgp-peers"][proto] and \
+                    "bgpPeerRemoteAs" not in cfg["bgp-peers"][proto]:
+                print(
+                    "WARNING: Protocol \"%s\" does not have a properly formated 'neighbor <ip> as <asn>;' line in the config" % proto)
 
         state = cfg.copy()
         bgp_proto = None
@@ -332,7 +345,7 @@ class BirdAgent(object):
             if srcip != state["bgp-peers"][proto]["bgpPeerLocalAddr"] or \
                     dstip != state["bgp-peers"][proto]["bgpPeerRemoteAddr"]:
                 print(
-                    "WARNING: Protocol \"%s\" has mismatch between the configuration file (local: %s, neighbourd %s) and the active BGP session (local: %s, neighbour: %s)" %
+                    "WARNING: Protocol \"%s\" has mismatch between the configuration file (local: %s, neighbor %s) and the active BGP session (local: %s, neighbor: %s)" %
                     (proto, state["bgp-peers"][proto]["bgpPeerLocalAddr"], state["bgp-peers"][proto]["bgpPeerRemoteAddr"], srcip, dstip))
                 continue
 

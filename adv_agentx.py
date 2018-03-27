@@ -435,7 +435,7 @@ class RequestObject(object):
                 value, ctypes.POINTER(ctypes.c_ubyte)), size)
             self.value = value
         except Exception as e:
-            print("WARNING: Unexpected error in SetValue(): %s" % e)
+            print("WARNING: Unexpected error in SetValue(): %r" % e)
 
     # set error
     def SetError(self, error):
