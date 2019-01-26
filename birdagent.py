@@ -62,7 +62,7 @@ class BirdAgent(object):
     _re_config_proto_end = re.compile("^\}$")
 
     _re_birdcli_bgp_begin = re.compile(
-        "^([a-zA-Z0-9_]+)\s+BGP\s+[a-zA-Z0-9_]+\s+[a-zA-Z0-9]+\s+(\d\d\d\d-\d\d-\d\d\s\d\d:\d\d:\d\d).*$")
+        "^([a-zA-Z0-9_]+)\s+BGP\s+[a-zA-Z0-9-_]+\s+[a-zA-Z0-9]+\s+(\d\d\d\d-\d\d-\d\d\s\d\d:\d\d:\d\d).*$")
     _re_birdcli_bgp_peer = {
         "bgpPeerIdentifier": re.compile("^\s+Neighbor ID:\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$"),
         "bgpPeerState": re.compile("^\s+BGP state:\s+([a-zA-Z]+)$"),
