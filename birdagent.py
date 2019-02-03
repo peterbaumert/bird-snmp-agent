@@ -231,6 +231,7 @@ class BirdAgent(object):
 
         # Validate protocol's config
         for proto in cfg["bgp-peers"]:
+            if not cfg["bgp-peers"][proto]: continue
             if "bgpPeerLocalAddr" not in cfg["bgp-peers"][proto] and \
                "bgpPeerLocalAs" not in cfg["bgp-peers"][proto]:
                 print(
