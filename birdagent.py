@@ -326,6 +326,7 @@ class BirdAgent(object):
 
         # match the connection 4-tuples with bgp-state
         for proto in list(state["bgp-peers"].keys()):
+            if not state["bgp-peers"][proto]: continue
 
             # enrich the state by local+remote ports
             try:
