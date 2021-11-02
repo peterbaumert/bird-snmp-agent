@@ -4,6 +4,8 @@ Based on https://github.com/carosio/bird-snmp-agent
 
 Forked by Mike Nowak (https://github.com/mikenowak)
 
+Forked by Peter Baumert (https://github.com/peterbaumert)
+
 ### What?
 
 * implements an SNMP-AgentX extension for the bird-routing-daemon
@@ -14,21 +16,19 @@ To collect its data this agent:
 
 * uses `birdc` CLI of bird
 * calls `ss` to query information about used tcp-ports
-* reads bird's configuration files
 
 ## Dependencies
 
 The script depends on the following libraries:
 * dateutil
-* pytz
-* tzlocal
-* future
 
 It also expects the `snmp-mibs-downloader` package.
 
 All of these can be installed on Ubuntu as follows:
 
-`apt install python3-dateutil python3-tz python3-tzlocal python3-future snmp-mibs-downloader`
+`apt install snmp-mibs-downloader`
+and
+`pip install -r requirements.txt`
 
 ## Usage
 
@@ -55,18 +55,6 @@ timeformat route iso long;
 ```
 
 NB: Only protocol line is needed, the rest are optional, but keep the output from birdc consistent.
-
-### Add protocols in bird
-
-The scripts expects to find both neighbour and local lines per protocol as in the example below:
-
-```
-protocol bgp PROTOCOL_NAME {
-  neighbor 192.168.1.200 as 65502;
-  local 192.168.1.100 as 65501;
-  [...]
-}
-```
 
 ## Settings
 
