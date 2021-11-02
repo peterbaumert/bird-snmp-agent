@@ -12,9 +12,7 @@
 # So this code is licensed under the GPLv3 (see COPYING.GPLv3).
 #
 
-from __future__ import print_function
 from adv_agentx import AgentX
-from adv_agentx import SnmpGauge32, SnmpCounter32
 import time
 import os
 import functools
